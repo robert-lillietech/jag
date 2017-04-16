@@ -1,84 +1,114 @@
 #include <cstdlib>
 #include <string>
 #include <iostream>
-
-void build_target1()
-{
-  system("g++ -c -o test1.o test-source.cpp");
-  system("g++ -o target1 test1.o");
-}
+#include <list>
+#include <utility>
 
 class ToolGccCompiler {
 public:
-  void input(const char* source);
-  void output(const char* target);
-  void run();
+  using string_t              = std::string;
+  using input_list_t          = std::list<string_t>;
+  using output_list_t         = std::list<string_t>;
 
-  void add_option(std::string* cmdline, const char* data);
-  void add_option(std::string* cmdline, const std::string& data);
+  void input(string_t source);
+template<class Arg1, class...Args>
+  void input(Arg1&& first, Args&&...sources);
+  void output(string_t target);
+  void run() { return do_run(); }
 
-  auto opt_dont_link() -> const char*;
-  auto opt_executable() -> const char*;
-  auto opt_obj_extension() -> const char*;
-  auto opt_output_file() -> const char*;
- 
+  auto opt_dont_link() -> string_t;
+  auto opt_executable() -> string_t;
+  auto opt_obj_extension() -> string_t;
+  auto opt_output_file() -> string_t;
+
 private:
-  std::string input_;
-  std::string output_;
+  virtual void do_add_option(std::string* cmdline, string_t data);
+  virtual void do_add_option(std::string* cmdline, const std::string& data);
+  virtual void do_run();
+  virtual auto do_filename_to_objname(string_t filename) -> std::string;
+
+  input_list_t      input_list_;
+  output_list_t     output_list_;
 };
 
-auto ToolGccCompiler::opt_obj_extension() -> const char*
+class ToolGccLinker : public ToolGccCompiler {
+public:
+  void run();
+};
+
+template<class Arg1, class...Args>
+void ToolGccCompiler::input(Arg1&& head, Args&&...tail) 
+{
+  this->input(head);
+  this->input(std::forward<Args>(tail)...);
+}
+
+auto ToolGccCompiler::opt_obj_extension() -> string_t
 {
   return ".o";
 }
 
-void ToolGccCompiler::add_option(std::string* s, const std::string& opt)
+void ToolGccCompiler::do_add_option(std::string* s, const std::string& opt)
 {
   *s += " " + opt;
 }
 
-void ToolGccCompiler::add_option(std::string* s, const char* opt)
+void ToolGccCompiler::do_add_option(std::string* s, string_t opt)
 {
   *s += " ";
   *s += opt;
 }
 
-auto ToolGccCompiler::opt_executable() -> const char*
+auto ToolGccCompiler::opt_executable() -> string_t
 {
   return "g++";
 }
 
-auto ToolGccCompiler::opt_dont_link() -> const char*
+auto ToolGccCompiler::opt_dont_link() -> string_t
 {
   return "-c";
 }
 
-auto ToolGccCompiler::opt_output_file() -> const char*
+auto ToolGccCompiler::opt_output_file() -> string_t
 {
   return "-o";
 }
 
-void ToolGccCompiler::input(const char* source)
+auto ToolGccCompiler::do_filename_to_objname(string_t f) -> std::string
 {
-  input_ = source;
+
 }
 
-void ToolGccCompiler::output(const char* target)
+void ToolGccCompiler::input(string_t source)
 {
-  output_ = target;
+  input_list_.push_back(source);
+  output_list_.push_back(do_filename_to_objname(source));
 }
 
-void ToolGccCompiler::run()
+void ToolGccCompiler::output(string_t target)
+{
+  //output_ = target;
+}
+
+void ToolGccCompiler::do_run()
 {
   using namespace std;
   string cmd;
-  add_option(&cmd, opt_executable());
-  add_option(&cmd, opt_dont_link());
-  add_option(&cmd, opt_output_file());
-  add_option(&cmd, input_ + opt_obj_extension());
-  add_option(&cmd, input_);
+  for(const auto& in : input_list_) {
+    do_add_option(&cmd, opt_executable());
+    do_add_option(&cmd, opt_dont_link());
+    do_add_option(&cmd, opt_output_file());
+    do_add_option(&cmd, in + opt_obj_extension());
+    do_add_option(&cmd, in);
+  }
   cout << cmd << "\n";
   system(cmd.c_str());
+}
+
+void build_target1()
+{
+  system("g++ -c -o test1.o test-source.cpp");
+  system("g++ -o target1 test1.o");
 }
 
 void build_target2()
@@ -87,10 +117,22 @@ void build_target2()
   compiler.input("test-source.cpp");
   compiler.output("target2");
   compiler.run(); 
+  ToolGccLinker linker;
+  linker.input(compiler.output());
+}
+
+void build_target3()
+{
+  ToolGccCompiler compiler;
+//  compiler.input("test-source.cpp", "test-source2.cpp");
+//  compiler.output("target3");
+//  compiler.run(); 
 }
 
 int main() {
   build_target1();
   build_target2();
+  build_target3();
   return 0;
 };
+
