@@ -4,7 +4,8 @@
 int main() 
 {
   Builder<Gcc> builder(
-      SourcePath("")
+      TargetName("test-executable"),
+      SourcePath("../")
   );
 
   builder.link(builder.compile("test-source.cpp"));
