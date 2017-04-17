@@ -1,29 +1,33 @@
 #ifndef GCC_TOOLCHAIN_HPP_201704161947PDT
 #define GCC_TOOLCHAIN_HPP_201704161947PDT 
 
-#include "toolchain.hpp"
+#include <string>
+#include <list>
+#include <sstream>
 
-class Gcc final : public Toolchain {
+class Gcc final {
 public:
   using string_t              = std::string;
   using name_list_t           = std::list<string_t>;
 
   auto source_to_objname(const string_t& src) const -> string_t;
 
-  virtual auto opt_compiler_executable() const -> const string_t& override;
-  virtual auto opt_build_output_file() const -> const string_t& override;
-  virtual auto opt_build_no_link() const -> const string_t& override;
-  virtual auto opt_source_path() const -> const string_t& override;
-  virtual auto opt_target_name() const -> const string_t& override;
+  auto opt_compiler_executable() const -> const string_t&;
+  auto opt_build_output_file() const -> const string_t&;
+  auto opt_build_no_link() const -> const string_t&;
+  auto opt_source_path() const -> const string_t&;
+  auto opt_target_name() const -> const string_t&;
 
-  virtual void set_source_path(const string_t& path) override;
-  virtual void set_target_name(const string_t& name) override;
+  void set_source_path(const string_t& path);
+  void set_target_name(const string_t& name);
 
 private:
-  virtual auto do_compile(const string_t& source) const -> string_t override;
-  virtual auto do_exec(const string_t& cmd) const -> bool override;
-  virtual void do_link(const name_list_t& objfiles) const override;
+  auto do_compile(const string_t& source) const -> string_t;
+  auto do_exec(const string_t& cmd) const -> bool;
+  void do_link(const name_list_t& objfiles) const;
 
+  name_list_t       opt_object_list_;
+  name_list_t       opt_source_list_;
   string_t          opt_source_path_;
   string_t          opt_target_name_;
 };

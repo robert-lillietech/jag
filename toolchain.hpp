@@ -10,20 +10,20 @@ public:
   using string_t              = std::string;
   using name_list_t           = std::list<string_t>;
 
-  virtual ~Toolchain();
+  ~Toolchain();
   template<class...Args>
   auto compile(Args&&...sources) const -> name_list_t;
 
   void link(const string_t& target, const name_list_t& objfiles) const;
 
-  virtual auto opt_compiler_executable() const -> const string_t& = 0;
-  virtual auto opt_build_output_file() const -> const string_t& = 0;
-  virtual auto opt_build_no_link() const -> const string_t& = 0;
-  virtual auto opt_source_path() const -> const string_t& = 0;
-  virtual auto opt_target_name() const -> const string_t& = 0;
+  auto opt_compiler_executable() const -> const string_t&;
+  auto opt_build_output_file() const -> const string_t&;
+  auto opt_build_no_link() const -> const string_t&;
+  auto opt_source_path() const -> const string_t&;
+  auto opt_target_name() const -> const string_t&;
 
-  virtual void set_source_path(const string_t& path) = 0;
-  virtual void set_target_name(const string_t& name) = 0;
+  void set_source_path(const string_t& path);
+  void set_target_name(const string_t& name);
 
 private:
 template<class Head>
@@ -31,9 +31,9 @@ template<class Head>
 template<class Head, class...Tail>
   void compile_list(name_list_t* objlist, Head&& head, Tail&&...tail) const;
 
-  virtual auto do_compile(const string_t& source) const -> string_t = 0;
-  virtual auto do_exec(const string_t& cmd) const -> bool = 0;
-  virtual void do_link(const name_list_t& objlist) const = 0;
+  auto do_compile(const string_t& source) const -> string_t;
+  auto do_exec(const string_t& cmd) const -> bool;
+  void do_link(const name_list_t& objlist) const;
 };
 
 Toolchain::~Toolchain() 

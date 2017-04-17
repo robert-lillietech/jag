@@ -8,6 +8,5 @@ int main()
       SourcePath("../")
   );
 
-  builder.link(builder.compile("test-source.cpp"));
   return 0;
 }

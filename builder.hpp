@@ -2,17 +2,14 @@
 #define BUILDER_HPP_201704162000PDT 
 
 #include <string>
-#include "toolchain.hpp"
 #include "options.hpp"
 
 template<class T>
 class Builder {
 public:
   using toolchain_t           = T;
-  using string_t              = typename Toolchain::string_t;
-  using name_list_t           = typename Toolchain::name_list_t;
-
-  Builder(Toolchain& tc);
+  using string_t              = typename T::string_t;
+  using name_list_t           = typename T::name_list_t;
 
 template<class Head>
   Builder(Head&& head);
