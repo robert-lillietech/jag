@@ -20,18 +20,21 @@ template<class Head, class...Tail>
   Builder(Head&& head, Tail&&...tail);
 
   auto compile(string_t filename) const -> name_list_t;
-  auto link(const name_list_t& objfiles) const -> string_t;
+  void link(const name_list_t& objfiles) const;
 
 private:
   // ctor delegates
-  void set_option(const SourcePath& path)          
-    { build_path_ = path.value; }
+  void set_option(const SourcePath& p)          
+    { 
+      toolchain_.set_source_path(p.value); 
+    }
   void set_option(const TargetName& name)         
-    { target_ = name.value; }
+    { 
+      toolchain_.set_target_name(name.value); 
+    }
   // members
   toolchain_t       toolchain_;
   string_t          target_;
-  string_t          build_path_;
 
 };
 
