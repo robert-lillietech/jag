@@ -2,28 +2,8 @@
 #define BUILDER_HPP_201704162000PDT 
 
 #include <string>
-#include <builder/toolchain.hpp>
-
-struct SimpleOption {
-public:
-  using string_t              = std::string;
-  SimpleOption(string_t value);
-  string_t          value;
-};
-
-SimpleOption::SimpleOption(string_t v) : value(v)
-{
-}
-
-struct TargetName: public SimpleOption 
-{  
-  TargetName(string_t value) : SimpleOption(value) {} 
-};
-
-struct SourcePath : public SimpleOption 
-{  
-  SourcePath(string_t value) : SimpleOption(value) {} 
-};
+#include "toolchain.hpp"
+#include "options.hpp"
 
 template<class T>
 class Builder {
