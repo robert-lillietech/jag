@@ -1,26 +1,81 @@
 #ifndef BUILDER_HPP_201704162000PDT
 #define BUILDER_HPP_201704162000PDT 
 
-template<class T>
-class Builder {
+#include <string>
+#include <builder/toolchain.hpp>
+
+struct SimpleOption {
 public:
-  using toolset_t             = T;
-  using string_t              = typename toolset_t::string_t;
-  using name_list_t           = typename toolset_t::name_list_t;
+  using string_t              = std::string;
+  SimpleOption(string_t value);
+  string_t          value;
+};
 
-  Builder(const string_t& t);
+SimpleOption::SimpleOption(string_t v) : value(v)
+{
+}
 
-  auto compile(string_t filename) -> name_list_t
-    { return name_list_t({toolset_t::compile(filename)}); }
-  auto link(const name_list_t& objfiles) -> string_t
-    { return toolset_t::link(target_, objfiles); }
-private:
-  string_t target_;
+struct TargetName: public SimpleOption 
+{  
+  TargetName(string_t value) : SimpleOption(value) {} 
+};
+
+struct SourcePath : public SimpleOption 
+{  
+  SourcePath(string_t value) : SimpleOption(value) {} 
 };
 
 template<class T>
-Builder<T>::Builder(const string_t& t) : target_(t)
+class Builder {
+public:
+  using toolchain_t           = T;
+  using string_t              = typename Toolchain::string_t;
+  using name_list_t           = typename Toolchain::name_list_t;
+
+  Builder(Toolchain& tc);
+
+template<class Head>
+  Builder(Head&& head);
+template<class Head, class...Tail>
+  Builder(Head&& head, Tail&&...tail);
+
+  auto compile(string_t filename) const -> name_list_t;
+  auto link(const name_list_t& objfiles) const -> string_t;
+
+private:
+  // ctor delegates
+  void set_option(const SourcePath& path)          
+    { build_path_ = path.value; }
+  void set_option(const TargetName& name)         
+    { target_ = name.value; }
+  // members
+  toolchain_t       toolchain_;
+  string_t          target_;
+  string_t          build_path_;
+
+};
+
+template<class T>
+template<class Head>
+Builder<T>::Builder(Head&& head) 
 {
+  set_option(std::forward<Head>(head));
 }
+
+template<class T>
+template<class Head, class...Tail>
+Builder<T>::Builder(Head&& head, Tail&&...tail) : Builder(std::forward<Tail>(tail)...) 
+{
+
+}
+
+template<class T>
+auto Builder<T>::compile(string_t filename) const -> name_list_t
+  { return name_list_t({ this->compile(filename) }); }
+
+template<class T>
+auto Builder<T>::link(const name_list_t& objfiles) const -> string_t
+  { return this->link(objfiles); }
+
 
 #endif//BUILDER_HPP_201704162000PDT
