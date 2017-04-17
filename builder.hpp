@@ -49,16 +49,16 @@ template<class T>
 template<class Head, class...Tail>
 Builder<T>::Builder(Head&& head, Tail&&...tail) : Builder(std::forward<Tail>(tail)...) 
 {
-
+  set_option(std::forward<Head>(head));
 }
 
 template<class T>
 auto Builder<T>::compile(string_t filename) const -> name_list_t
-  { return name_list_t({ this->compile(filename) }); }
+  { return name_list_t({ toolchain_.compile(filename) }); }
 
 template<class T>
-auto Builder<T>::link(const name_list_t& objfiles) const -> string_t
-  { return this->link(objfiles); }
+void Builder<T>::link(const name_list_t& objfiles) const
+  { toolchain_.link(target_, objfiles); }
 
 
 #endif//BUILDER_HPP_201704162000PDT
