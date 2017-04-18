@@ -4,6 +4,7 @@
 int main() 
 {
   Builder<Gcc> builder(
+      AllowLogging(false),
       Sources("test-source.cpp"),
       TargetExecutable("test-executable"),
       SourcePath("../")

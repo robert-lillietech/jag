@@ -1,12 +1,12 @@
 #ifndef GCC_TOOLCHAIN_HPP_201704161947PDT
 #define GCC_TOOLCHAIN_HPP_201704161947PDT 
 
+#include <memory>
 #include <string>
 #include <list>
 #include <iostream>
 #include <sstream>
 #include <sys/stat.h>
-
 #include "options.hpp"
 
 class Gcc final {
@@ -27,12 +27,21 @@ public:
   void set_option(const Sources& sourcelist);
   void set_option(const SourcePath& p);
   void set_option(const TargetExecutable& name);         
+  void set_option(const AllowLogging& state);
 
+  template<class Arg>
+  void write_log(Arg&& data) const;
+
+  template<class Arg1, class...Args>
+  void write_log(Arg1&& head, Args&&...tail) const;
+
+private:
   build_type_t      opt_build_type_     = target_executable;
   object_list_t     opt_object_list_;
   string_t          opt_source_path_;
   string_t          opt_target_name_;
-private:
+  bool              opt_logging_enabled_ = true;
+
   void compile() const;
   auto exec(const string_t& cmd) const -> bool;
   void link() const;
@@ -46,6 +55,24 @@ private:
 
 
 };
+
+void Gcc::set_option(const AllowLogging& opt) 
+{
+  opt_logging_enabled_ = opt.value;
+}
+
+template<class Arg>
+void Gcc::write_log(Arg&& data) const {
+  if(opt_logging_enabled_) {
+    std::cout << data;
+  }
+}
+
+template<class Arg1, class...Args>
+void Gcc::write_log(Arg1&& head, Args&&...tail) const {
+  this->write_log(std::forward<Arg1>(head));
+  this->write_log(std::forward<Args>(tail)...);
+}
 
 auto Gcc::timestamp(const string_t& filepath) const -> time_t
 {
@@ -131,12 +158,13 @@ auto Gcc::opt_compiler_executable() const -> const string_t&
 void Gcc::link() const
 {
   using namespace std;
-  cout << "[[ LINKING ]]\n";
+  write_log("[[ LINKING ]]\n");
   stringstream cmdline;
   auto& tfile = opt_target_name();
   cmdline << "g++"
           << " -o " << tfile;
   bool target_is_stale = false;
+  write_log(tfile, ":");
   for(const auto& obj_info : opt_object_list_) {
     auto& ofile = obj_info.object_filename;
     if(timestamp(tfile) < timestamp(ofile)) {
@@ -145,35 +173,34 @@ void Gcc::link() const
     cmdline << " " << obj_info.object_filename;
   }
   if(target_is_stale) {
-    if(!this->exec(cmdline.str())) {
+    write_log(" linking...");
+    if(!exec(cmdline.str())) {
       throw std::runtime_error("Linking stage failed.");
     }
   }
-  else {
-    cout << tfile << " up-to-date\n";
-  }
+  write_log(" OK.\n");
 }
 
 void Gcc::compile() const
 {
   using namespace std;
-  cout << "[[ COMPILING ]]\n";
+  write_log("[[ COMPILING ]]\n");
   for(const auto& obj_info : opt_object_list_) {
     stringstream cmdline;
     auto& ofile = obj_info.object_filename;
     auto sfile = opt_source_path() + obj_info.source_filename;
     bool object_is_stale = timestamp(ofile) < timestamp(sfile);
+    write_log(ofile, ":");
     if(object_is_stale) {
+      write_log(" compiling...");
       cmdline << opt_compiler_executable() 
         << " " << opt_build_no_link()
         << " " << opt_build_output_file()
         << " " << ofile
         << " " << sfile;
     }
-    else {
-      cout << ofile << " up-to-date\n";
-    }
-    if(!this->exec(cmdline.str())) {
+    write_log(" OK.\n");
+    if(!exec(cmdline.str())) {
       throw std::runtime_error("Compilation stage failed.");
     }
   }
@@ -182,7 +209,7 @@ void Gcc::compile() const
 auto Gcc::exec(const string_t& cmd) const -> bool
 {
   auto retval = system(cmd.c_str());
-  std::cout << cmd << "\n";
+  write_log(cmd, "\n");
   if(WIFEXITED(retval)) {
     auto status = WEXITSTATUS(retval);
     return status == 0;
