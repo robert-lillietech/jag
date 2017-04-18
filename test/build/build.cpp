@@ -4,9 +4,12 @@
 int main() 
 {
   Builder<Gcc> builder(
-      TargetName("test-executable"),
+      Sources("test-source.cpp"),
+      TargetExecutable("test-executable"),
       SourcePath("../")
   );
+
+  builder.run();
 
   return 0;
 }

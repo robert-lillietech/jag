@@ -2,28 +2,47 @@
 #define OPTIONS_HPP_201704162338PDT 
 
 #include <string>
+#include <list>
 
 struct SimpleOption {
-public:
   using string_t              = std::string;
-  SimpleOption(std::string value);
-  std::string          value;
+  SimpleOption(string_t value);
+  string_t          value;
 };
 
-SimpleOption::SimpleOption(std::string v) : value(v)
+SimpleOption::SimpleOption(string_t v) : value(v)
 {
 }
 
-struct TargetName: public SimpleOption 
+struct TargetExecutable: public SimpleOption 
 {  
-  TargetName(std::string value) : SimpleOption(value) {} 
+  template<class...Args>
+  TargetExecutable(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
 };
 
 struct SourcePath : public SimpleOption 
 {  
-  SourcePath(std::string value) : SimpleOption(value) {} 
+  template<class...Args>
+  SourcePath(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
 };
 
+struct ListOption 
+{
+  using string_t              = std::string;
+  using list_t                = std::list<string_t>;
 
+  template<class...Args>
+  ListOption(Args&&...list_items) 
+    : value({ std::forward<Args>(list_items)... }) {}
+
+  list_t value;
+};
+
+struct Sources : public ListOption
+{
+  template<class...Args>
+  Sources(Args&&...args) : ListOption(std::forward<Args>(args)...)  {} 
+
+};
 
 #endif//OPTIONS_HPP_201704162338PDT
