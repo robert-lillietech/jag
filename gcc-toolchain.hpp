@@ -170,7 +170,7 @@ void Gcc::link() const
   cmdline << "g++"
           << " -o " << tfile;
   bool target_is_stale = false;
-  write_log(tfile, ":");
+  write_log(tfile, ": ");
   for(const auto& obj_info : opt_object_list_) {
     auto& ofile = obj_info.object_filename;
     if(timestamp(tfile) < timestamp(ofile)) {
@@ -179,12 +179,11 @@ void Gcc::link() const
     cmdline << " " << obj_info.object_filename;
   }
   if(target_is_stale) {
-    write_log(" linking...");
+    write_log(cmdline.str(), "\n");
     if(!exec(cmdline.str())) {
       throw std::runtime_error("Linking stage failed.");
     }
   }
-  write_log(" OK.\n");
 }
 
 void Gcc::compile() const
@@ -198,14 +197,13 @@ void Gcc::compile() const
     bool object_is_stale = timestamp(ofile) < timestamp(sfile);
     write_log(ofile, ":");
     if(object_is_stale) {
-      write_log(" compiling...");
       cmdline << opt_compiler_executable() 
         << " " << opt_build_no_link()
         << " " << opt_build_output_file()
         << " " << ofile
         << " " << sfile;
     }
-    write_log(" OK.\n");
+    write_log(cmdline.str(), "\n");
     if(!exec(cmdline.str())) {
       throw std::runtime_error("Compilation stage failed.");
     }
@@ -215,7 +213,6 @@ void Gcc::compile() const
 auto Gcc::exec(const string_t& cmd) const -> bool
 {
   auto retval = system(cmd.c_str());
-  write_log(cmd, "\n");
   if(WIFEXITED(retval)) {
     auto status = WEXITSTATUS(retval);
     return status == 0;
