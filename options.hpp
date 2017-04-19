@@ -9,19 +9,19 @@ struct AllowLogging : BooleanOption {
 
 
 
-struct TargetExecutable: public SimpleOption 
+struct TargetExecutable: SimpleOption 
 {  
   template<class...Args>
   TargetExecutable(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
 };
 
-struct SourcePath : public SimpleOption 
+struct SourcePath : SimpleOption 
 {  
   template<class...Args>
   SourcePath(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
 };
 
-struct Sources : public ListOption
+struct Sources : ListOption
 {
   template<class...Args>
   Sources(Args&&...args) : ListOption(std::forward<Args>(args)...)  {} 
