@@ -16,7 +16,7 @@ public:
   using object_info_t         = ObjectInfo;
   using string_t              = std::string;
   using object_list_t         = std::list<object_info_t>;
-  
+  using dependency_list_t     = std::list<string_t>;
   enum build_type_t
   {
     target_executable 
@@ -24,6 +24,7 @@ public:
 
   void build() const;
 
+  void set_option(const Depends& depends);
   void set_option(const Sources& sourcelist);
   void set_option(const SourcePath& p);
   void set_option(const TargetExecutable& name);         
@@ -41,7 +42,8 @@ private:
   string_t          opt_source_path_;
   string_t          opt_target_name_;
   bool              opt_logging_enabled_ = true;
-
+  dependency_list_t opt_dependency_list_;
+  
   void compile() const;
   auto exec(const string_t& cmd) const -> bool;
   void link() const;
@@ -53,8 +55,12 @@ private:
   auto opt_source_path() const -> const string_t&;
   auto opt_target_name() const -> const string_t&;
 
-
 };
+
+void Gcc::set_option(const Depends& depends) 
+{
+  opt_dependency_list_ = depends.value;
+}
 
 void Gcc::set_option(const AllowLogging& opt) 
 {

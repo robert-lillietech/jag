@@ -3,6 +3,9 @@
 
 #include "options_base.hpp"
 
+struct Depends : ListOption {
+};
+
 struct AllowLogging : BooleanOption {
   AllowLogging(bool v) : BooleanOption(v) {}
 };
