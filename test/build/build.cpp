@@ -1,15 +1,17 @@
 #include <builder/gcc-toolchain.hpp>
 #include <builder/builder.hpp>
+#include <builder/project.hpp>
 
 int main() 
 {
   Builder<Gcc> builder(
-      Sources("test-source.cpp"),
-      TargetExecutable("test-executable"),
-      SourcePath("../")
+      Project<Gcc>(
+        Sources("test-source.cpp"),
+        TargetExecutable("test-executable"),
+        SourcePath("../")
+      )
   );
 
-  builder.run();
 
   return 0;
 }
