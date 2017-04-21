@@ -1,6 +1,6 @@
-#include <builder/gcc-toolchain.hpp>
-#include <builder/builder.hpp>
-#include <builder/project.hpp>
+#include <jag/gcc-toolchain.hpp>
+#include <jag/builder.hpp>
+#include <jag/project.hpp>
 
 int main() 
 {
