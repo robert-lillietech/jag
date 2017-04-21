@@ -10,18 +10,19 @@ struct AllowLogging : BooleanOption {
   AllowLogging(bool v) : BooleanOption(v) {}
 };
 
-
+struct Name : SimpleOption {
+  Name(const std::string& value) : SimpleOption(value) {}
+};
 
 struct TargetExecutable: SimpleOption 
 {  
-  template<class...Args>
-  TargetExecutable(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
+  TargetExecutable(const std::string& value) : SimpleOption(value) {} 
 };
 
 struct SourcePath : SimpleOption 
 {  
   template<class...Args>
-  SourcePath(Args&&...args) : SimpleOption(std::forward<Args>(args)...) {} 
+  SourcePath(const std::string& value) : SimpleOption(value) {} 
 };
 
 struct Sources : ListOption

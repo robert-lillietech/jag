@@ -11,18 +11,17 @@ class Builder : public Configurable<Builder<T>> {
 public:
   using toolchain_t           = T;
   using string_t              = typename T::string_t;
-  using project_t             = Project<T>;
-  using project_list_t        = std::list<project_t>;
+  using obj_list_t            = std::list<string_t>;
+  using project_list_t        = std::list<Project>;
 
   template<class...Args>
   Builder(Args&&...options);
 
-  void set_option(const project_t& project);
+  void set_option(Project&& project);
+  void set_option(const AllowLogging& state);
 
   void run() const;
-  void build() const;
-  void compile(const project_t&) const;
-  void link(const project_t&) const;
+
 
 template<class Arg>
   void write_log(Arg&& data) const;
@@ -32,15 +31,22 @@ template<class Arg1, class...Args>
 
 private:
   // members
-  toolchain_t       toolchain_;
   string_t          target_;
-  project_list_t    project_list_;
+  toolchain_t       toolchain_;
   bool              opt_logging_enabled_ = true;
+  project_list_t    project_list_;
+
+  void build(const Project&) const;
+  auto compile(const Project&) const -> obj_list_t;
+  void error_build_type_not_available(const Project&) const;
+  void link(const Project&, const obj_list_t&) const;
+
 };
 
 template<class T>
-void Builder<T>::set_option(const project_t& project)
+void Builder<T>::set_option(Project&& project)
 {
+  project_list_.push_back(std::move(project));
 }
 
 template<class T>
@@ -51,45 +57,71 @@ Builder<T>::Builder(Args&&...opts)
 }
 
 template<class T>
-void Builder<T>::build() const
+void Builder<T>::build(const Project& project) const
 {
-  for(const auto& project : project_list_) {
-    switch(project.opt_build_type()) {
-    case project_t::target_executable:
-      compile(project);
-      link(project);
-      break;
-    };
+  auto build_type = project.opt_build_type();
+  switch(build_type) {
+  case Project::Executable:
+    {
+      auto objlist = this->compile(project);
+      this->link(project, objlist);
+    }
+    break;
+  default:
+    this->error_build_type_not_available(project);
   }
 }
 
 template<class T>
-void Builder<T>::compile(const project_t& project) const
+auto Builder<T>::compile(const Project& project) const -> obj_list_t
 {
   using namespace std;
   write_log("[[ COMPILING ]]\n");
-  for(const auto& obj_info : project.opt_object_list()) {
+  obj_list_t objlist;
+  for(const auto& source : project.opt_source_list()) {
     stringstream cmdline;
-    auto& ofile = obj_info.object_filename;
-    auto sfile = project.opt_source_path() + obj_info.source_filename;
-    bool object_is_stale = timestamp(ofile) < timestamp(sfile);
-    write_log(ofile, ":");
+    auto sfile = project.opt_source_path() + source;
+    auto sfile_info = file_info(sfile);
+    if(sfile_info.error) {
+      stringstream msg;
+      msg << "Could not open source file: " << sfile;
+      throw std::runtime_error(msg.str());
+    }
+    auto ofile = toolchain_.source_name_to_obj_name(source);
+    auto ofile_info = file_info(ofile);
+    bool object_is_stale = (ofile_info.timestamp < sfile_info.timestamp)
+                         | ofile_info.error;
+
+    write_log(ofile, ": ");
     if(object_is_stale) {
-      cmdline <<        toolchain_t::opt_compiler_executable() 
-              << " " << toolchain_t::opt_build_no_link()
-              << " " << toolchain_t::opt_build_output_file()
+      cmdline <<        toolchain_.opt_compiler_executable() 
+              << " " << toolchain_.opt_build_no_link()
+              << " " << toolchain_.opt_build_output_file()
               << " " << ofile
               << " " << sfile;
+      write_log(cmdline.str(), "\n");
+    } else {
+      write_log("[no change]\n");
     }
-    write_log(cmdline.str(), "\n");
-    if(!toolchain_t::exec(cmdline.str())) {
+    if(!toolchain_.exec(cmdline.str())) {
       throw std::runtime_error("Compilation stage failed.");
     }
+    objlist.push_back(ofile);
   }
+  return objlist;
 }
 
 template<class T>
-void Builder<T>::link(const project_t& project) const
+void Builder<T>::error_build_type_not_available(const Project& project) const
+{
+  std::stringstream msg;
+  msg << "Build type \"" << project.opt_build_type() 
+      << "\" not available for project \"" << project.opt_project_name() << "\"";
+  throw std::runtime_error(msg.str());
+}
+
+template<class T>
+void Builder<T>::link(const Project& project, const obj_list_t& objlist) const
 {
   using namespace std;
   write_log("[[ LINKING ]]\n");
@@ -99,25 +131,43 @@ void Builder<T>::link(const project_t& project) const
           << " -o " << tfile;
   bool target_is_stale = false;
   write_log(tfile, ": ");
-  for(const auto& obj_info : project.opt_object_list()) {
-    auto& ofile = obj_info.object_filename;
-    if(timestamp(tfile) < timestamp(ofile)) {
-      target_is_stale = true;
+  for(const auto& obj : objlist) {
+    auto ofile_info = file_info(obj);
+    if(ofile_info.error) {
+      stringstream msg;
+      msg << "Could not open object file: " << obj;
+      throw std::runtime_error(msg.str());
     }
-    cmdline << " " << obj_info.object_filename;
+    auto tfile_info = file_info(tfile);
+    if(!target_is_stale) { 
+      target_is_stale = (tfile_info.timestamp < ofile_info.timestamp)
+                      | tfile_info.error;
+    }
+    cmdline << " " << obj;
   }
   if(target_is_stale) {
     write_log(cmdline.str(), "\n");
-    if(!toolchain_t::exec(cmdline.str())) {
+    if(!toolchain_.exec(cmdline.str())) {
       throw std::runtime_error("Linking stage failed.");
     }
+  } else {
+    write_log("[no change]\n");
   }
 }
 
 template<class T>
 void Builder<T>::run() const
 { 
-  toolchain_.build();
+  // iterate over projects
+  for(const auto& project : project_list_) {
+    this->build(project); 
+  }
+}
+
+template<class T>
+void Builder<T>::set_option(const AllowLogging& opt) 
+{
+  opt_logging_enabled_ = opt.value;
 }
 
 template<class T>

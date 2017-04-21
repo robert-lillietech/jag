@@ -5,13 +5,14 @@
 int main() 
 {
   Builder<Gcc> builder(
-      Project<Gcc>(
+      Project(
+        Name("test-project"),
         Sources("test-source.cpp"),
         TargetExecutable("test-executable"),
         SourcePath("../")
       )
   );
 
-
+  builder.run(); 
   return 0;
 }
