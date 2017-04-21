@@ -1,4 +1,5 @@
 *.sw?
 test/
 .*
-
+docs/
+Session.vim
